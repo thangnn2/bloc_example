@@ -9,8 +9,14 @@ class RunningState extends TimerState {
   RunningState({required this.ticks});
 }
 
-class PauseState extends TimerState {}
+class PauseState extends TimerState {
+  final int pauseTicks;
+  PauseState({required this.pauseTicks});
+}
 
 class ReplayState extends TimerState {}
 
-class ResumeState extends TimerState {}
+class ResumeState extends TimerState {
+  final int resumeTicks;
+  ResumeState({required this.resumeTicks});
+}

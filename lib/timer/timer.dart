@@ -7,7 +7,8 @@ class Timer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String time = "01:00";
+    const timeInitial = "01:00";
+    String time = timeInitial;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -16,6 +17,12 @@ class Timer extends StatelessWidget {
           BlocBuilder<TimerBloc, TimerState>(builder: (context, state) {
             if (state is RunningState) {
               time = '00:${state.ticks}';
+            } else if (state is PauseState) {
+              time = '00:${state.pauseTicks}';
+            } else if (state is ResumeState) {
+              time = '00:${state.resumeTicks}';
+            } else if (state is TimerInitial) {
+              time = timeInitial;
             }
             return Text(
               time,
