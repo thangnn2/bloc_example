@@ -9,7 +9,7 @@ part 'timer_state.dart';
 class TimerBloc extends Bloc<TimerEvent, TimerState> {
   TimerBloc({required Ticker ticker})
       : _ticker = ticker,
-        super(TimerInitial()) {
+        super(TimerInitial(ticks: _duration)) {
     on<TimerStart>(_onTimerStart);
     on<PauseTimer>(_onPauseTimer);
     on<ReplayTimer>(_onReplayTimer);
@@ -19,6 +19,7 @@ class TimerBloc extends Bloc<TimerEvent, TimerState> {
 
   final Ticker _ticker;
   StreamSubscription<int>? _streamSubscription;
+  static const int _duration = 60;
 
   void _onTimerStart(TimerStart event, Emitter<TimerState> emit) {
     final state = this.state;
@@ -39,7 +40,7 @@ class TimerBloc extends Bloc<TimerEvent, TimerState> {
     final state = this.state;
     if (state is RunningState) {
       _streamSubscription?.pause();
-      emit(PauseState(pauseTicks: state.ticks));
+      emit(PauseState(ticks: state.ticks));
     }
   }
 
@@ -49,7 +50,7 @@ class TimerBloc extends Bloc<TimerEvent, TimerState> {
 
   void _onReplayTimer(ReplayTimer event, Emitter<TimerState> emit) {
     _streamSubscription?.cancel();
-    emit(TimerInitial());
+    emit(TimerInitial(ticks: _duration));
   }
 
   void _onResumeTimer(ResumeTimer event, Emitter<TimerState> emit) {
@@ -57,7 +58,7 @@ class TimerBloc extends Bloc<TimerEvent, TimerState> {
     if (state is RunningState) return;
     if (state is PauseState) {
       _streamSubscription?.resume();
-      emit(ResumeState(resumeTicks: state.pauseTicks));
+      emit(RunningState(ticks: state.ticks));
     }
   }
 

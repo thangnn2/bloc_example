@@ -1,22 +1,22 @@
 part of 'timer_bloc.dart';
 
-abstract class TimerState {}
+abstract class TimerState {
+  final int ticks;
+  TimerState({required this.ticks});
+}
 
-class TimerInitial extends TimerState {}
+class TimerInitial extends TimerState {
+  TimerInitial({required super.ticks});
+}
 
 class RunningState extends TimerState {
-  final int ticks;
-  RunningState({required this.ticks});
+  RunningState({required super.ticks});
 }
 
 class PauseState extends TimerState {
-  final int pauseTicks;
-  PauseState({required this.pauseTicks});
+  PauseState({required super.ticks});
 }
 
-class ReplayState extends TimerState {}
-
-class ResumeState extends TimerState {
-  final int resumeTicks;
-  ResumeState({required this.resumeTicks});
+class ReplayState extends TimerState {
+  ReplayState({required super.ticks});
 }

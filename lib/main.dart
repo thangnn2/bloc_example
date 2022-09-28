@@ -1,9 +1,10 @@
 import 'package:bloc_example/timer/bloc/timer_bloc.dart';
 import 'package:bloc_example/timer/ticker.dart';
-import 'package:bloc_example/timer/timer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import 'demo/demo.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
             ),
             home: BlocProvider(
               create: (context) => TimerBloc(ticker: Ticker()),
-              child: const Timer(),
+              child: const Demo(),
             ),
           );
         });

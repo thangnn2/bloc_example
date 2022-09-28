@@ -40,6 +40,7 @@ dependencies:
   introduction_screen: ^3.0.2
   flutter_screenutil: ^5.5.3+2
   smooth_page_indicator: ^1.0.0+2
+  likk_picker: ^1.1.5+1
 
 dev_dependencies:
   flutter_test:

@@ -7,63 +7,64 @@ class Timer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const timeInitial = "01:00";
-    String time = timeInitial;
+    final times = context.select((TimerBloc bloc) => bloc.state.ticks);
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          const Spacer(),
-          BlocBuilder<TimerBloc, TimerState>(builder: (context, state) {
-            if (state is RunningState) {
-              time = '00:${state.ticks}';
-            } else if (state is PauseState) {
-              time = '00:${state.pauseTicks}';
-            } else if (state is ResumeState) {
-              time = '00:${state.resumeTicks}';
-            } else if (state is TimerInitial) {
-              time = timeInitial;
+      body: BlocListener<TimerBloc, TimerState>(
+        listener: (context, state) {
+          if (state is RunningState) {
+            if (state.ticks == 0) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Yay! Time out'),
+              ));
+              context.read<TimerBloc>().add(ReplayTimer());
             }
-            return Text(
-              time,
+          }
+        },
+        child: Column(
+          children: [
+            const Spacer(),
+            Text(
+              times.toString(),
               style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w400),
-            );
-          }),
-          const SizedBox(
-            height: 50,
-          ),
-          Row(
-            children: [
-              const Spacer(),
-              FloatingActionButton(
-                onPressed: () {
-                  context.read<TimerBloc>().add(TimerStart(ticks: 60));
-                },
-                child: const Icon(Icons.play_arrow),
-              ),
-              const SizedBox(
-                width: 30,
-              ),
-              FloatingActionButton(
-                onPressed: () {
-                  context.read<TimerBloc>().add(PauseTimer());
-                },
-                child: const Icon(Icons.pause),
-              ),
-              const SizedBox(
-                width: 30,
-              ),
-              FloatingActionButton(
-                onPressed: () {
-                  context.read<TimerBloc>().add(ReplayTimer());
-                },
-                child: const Icon(Icons.replay),
-              ),
-              const Spacer(),
-            ],
-          ),
-          const Spacer(),
-        ],
+            ),
+            // }),
+            const SizedBox(
+              height: 50,
+            ),
+            Row(
+              children: [
+                const Spacer(),
+                FloatingActionButton(
+                  onPressed: () {
+                    context.read<TimerBloc>().add(TimerStart(ticks: 60));
+                  },
+                  child: const Icon(Icons.play_arrow),
+                ),
+                const SizedBox(
+                  width: 30,
+                ),
+                FloatingActionButton(
+                  onPressed: () {
+                    context.read<TimerBloc>().add(PauseTimer());
+                  },
+                  child: const Icon(Icons.pause),
+                ),
+                const SizedBox(
+                  width: 30,
+                ),
+                FloatingActionButton(
+                  onPressed: () {
+                    context.read<TimerBloc>().add(ReplayTimer());
+                  },
+                  child: const Icon(Icons.replay),
+                ),
+                const Spacer(),
+              ],
+            ),
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }
