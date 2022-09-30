@@ -1,9 +1,10 @@
-import 'package:bloc_example/demo/draggable_bottom_sheet/panel_controller.dart';
-import 'package:bloc_example/demo/draggable_bottom_sheet/slider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import 'draggable_bottom_sheet/panel_controller.dart';
+import 'draggable_bottom_sheet/sliding_value.dart';
 
 class Demo extends StatefulWidget {
   const Demo({Key? key}) : super(key: key);
@@ -14,90 +15,96 @@ class Demo extends StatefulWidget {
 
 class _DemoState extends State<Demo> with TickerProviderStateMixin {
   late final PanelController _panelController;
-  VelocityTracker? velocityTracker;
   late final ScrollController _scrollController;
-  late final AnimationController _animationController;
-  double _initialPointerPosition = 0.0;
-  final double _maxHeightPanel = 1.sh;
-  final double _minHeightPanel = 210.h;
+  VelocityTracker? velocityTracker;
+  Offset _initialPointerPosition = Offset.zero;
+  late AnimationController _animationController;
   bool _scrollToTop = false;
-  bool _scrollTopBottom = false;
-  var _pointerPositionBeforeScroll = Offset.zero;
+  bool _scrollToBottom = false;
+  double _scrollableSpace = 0.0;
+  double gapScrollingDown = 0.0;
+  double gapScrollingUp = 0.0;
+  final double _maxPanelHeight = 1.sh;
+  final double _minPanelHeight = 210.h;
 
   bool get _aboveHalfWay => _panelController.value.factor > 0.3;
 
   @override
   void initState() {
     _panelController = PanelController();
-    _animationController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 400))
-      ..addListener(() {
-        _panelController.attach(SliderValue(
-          factor: _animationController.value,
-          state: _aboveHalfWay ? SliderState.max : SliderState.initial,
-        ));
-      });
     _scrollController = _panelController.scrollController
       ..addListener(() {
-        if (_scrollController.hasClients) {
+        if ((_scrollToTop || _scrollToBottom) && _scrollController.hasClients) {
           _scrollController.position.hold(() {});
         }
       });
+    _scrollableSpace = _maxPanelHeight - _minPanelHeight;
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    )..addListener(
+        () {
+          _panelController.attach(
+            SlidingValue(
+              factor: _animationController.value,
+              slidingState: _aboveHalfWay ? SlidingState.max : SlidingState.min,
+            ),
+          );
+        },
+      );
     super.initState();
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  void _onPointerDown(PointerDownEvent event) {
+    _initialPointerPosition = event.position;
+    velocityTracker ??= VelocityTracker.withKind(event.kind);
+    setState(() {});
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    velocityTracker!.addPosition(event.timeStamp, event.position);
+    final panelState = _panelController.value.slidingState;
+    final state =
+        _initialPointerPosition.dy - event.position.dy > _minPanelHeight
+            ? SlidingState.slidingUp
+            : SlidingState.slidingDown;
+    if (panelState == SlidingState.initial && state == SlidingState.slidingUp) {
+      _scrollToTop = 1.sh - event.position.dy > _minPanelHeight;
+    }
+    if (panelState == SlidingState.max && state == SlidingState.slidingDown) {
+      final isControllerOffsetZero = _scrollController.hasClients
+          ? _scrollController.offset == 0.0
+          : false;
+      final isHandler = event.position.dy >= _minPanelHeight &&
+          event.position.dy <= _maxPanelHeight;
+      _scrollToBottom = isHandler || isControllerOffsetZero;
+    }
+
+    if (_scrollToBottom || _scrollToTop) {
+      double factor = 0.0;
+      if (_scrollToTop) {
+        factor = ((_initialPointerPosition.dy - event.position.dy) /
+                _scrollableSpace)
+            .clamp(0, 1);
+      }
+      _panelController.attach(
+        SlidingValue(
+          slidingState: state,
+          factor: factor,
+        ),
+      );
+    }
   }
 
   void _onPointerUp(PointerUpEvent event) {
-    final scrollVelocity = velocityTracker!.getVelocity();
-    final dyVelocity = scrollVelocity.pixelsPerSecond.dy;
+    final velocity = velocityTracker!.getVelocity();
+    final dyVelocity = velocity.pixelsPerSecond.dy;
     final flingPanel = dyVelocity.abs() > 800.0;
     final endValue = flingPanel
         ? (dyVelocity.isNegative ? 1.0 : 0.0)
         : (_aboveHalfWay ? 1.0 : 0.0);
     _snapToPosition(endValue);
-  }
-
-  void _onPointerDown(PointerDownEvent event) {
-    _initialPointerPosition = event.position.dy;
-    velocityTracker ??= VelocityTracker.withKind(event.kind);
-  }
-
-  void _onPointerMove(PointerMoveEvent event) {
-    final panelState = _panelController.value.state;
-    final state = _initialPointerPosition - event.position.dy > _minHeightPanel
-        ? SliderState.slidingUp
-        : SliderState.slidingDown;
-    velocityTracker?.addPosition(event.timeStamp, event.position);
-    if (state == SliderState.slidingUp && panelState == SliderState.initial) {
-      _scrollToTop =
-          _initialPointerPosition - event.position.dy > _minHeightPanel;
-    }
-    if (state == SliderState.slidingDown && panelState == SliderState.max) {
-      final isHandler =
-          event.position.dy >= _minHeightPanel && event.position.dy <= 1.sh;
-      _scrollTopBottom = isHandler;
-    }
-    if (_scrollTopBottom) {
-      _pointerPositionBeforeScroll = event.position;
-    }
-    if (_scrollToTop || _scrollTopBottom) {
-      final startingPX = event.position.dy -
-          (_scrollToTop ? _minHeightPanel : _pointerPositionBeforeScroll.dy);
-      final remainingPX = ((_maxHeightPanel - _minHeightPanel) - startingPX);
-
-      final factor = (remainingPX / (_maxHeightPanel - _minHeightPanel));
-      _panelController.attach(SliderValue(factor: factor, state: state));
-    }
-    // final scrollGap = _initialPointerPosition - event.position.dy;
-    // final factor = scrollGap / (_maxHeightPanel - _minHeightPanel);
-    // if (factor >= 0 && factor <= 1) {
-    //   _panelController.attach(SliderValue(factor: factor));
-    // }
+    velocityTracker = null;
   }
 
   void _snapToPosition(double endValue, {double? startValue}) {
@@ -122,13 +129,12 @@ class _DemoState extends State<Demo> with TickerProviderStateMixin {
         onPressed: () {
           _panelController.openPanel();
         },
-        elevation: 0,
       ),
       body: Stack(
         children: [
           Positioned.fill(
             child: GestureDetector(
-              onTapDown: (_) {
+              onTap: () {
                 _panelController.closePanel();
               },
               child: Container(
@@ -141,12 +147,11 @@ class _DemoState extends State<Demo> with TickerProviderStateMixin {
             builder: (context, isVisible, child) {
               return isVisible ? child! : const SizedBox();
             },
-            child: ValueListenableBuilder<SliderValue>(
+            child: ValueListenableBuilder(
               valueListenable: _panelController,
-              builder: (context, value, child) {
-                final height = (_minHeightPanel +
-                        (value.factor * (_maxHeightPanel - _minHeightPanel)))
-                    .clamp(_minHeightPanel, _maxHeightPanel);
+              builder: (context, SlidingValue value, child) {
+                final height = (_minPanelHeight +
+                    value.factor * (_maxPanelHeight - _minPanelHeight));
                 return PositionedDirectional(
                   bottom: 0,
                   child: SizedBox(
@@ -157,11 +162,11 @@ class _DemoState extends State<Demo> with TickerProviderStateMixin {
               },
               child: Listener(
                 onPointerDown: _onPointerDown,
-                onPointerMove: _onPointerMove,
                 onPointerUp: _onPointerUp,
+                onPointerMove: _onPointerMove,
                 child: Container(
                   width: 1.sw,
-                  color: Colors.red,
+                  color: Colors.purple,
                 ),
               ),
             ),

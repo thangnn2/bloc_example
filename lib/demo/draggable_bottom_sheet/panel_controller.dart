@@ -1,13 +1,13 @@
-import 'package:bloc_example/demo/draggable_bottom_sheet/slider.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:bloc_example/demo/draggable_bottom_sheet/sliding_value.dart';
+import 'package:flutter/material.dart';
 
-class PanelController extends ValueNotifier<SliderValue> {
+class PanelController extends ValueNotifier<SlidingValue> {
   PanelController(
       {ScrollController? scrollController,
       ValueNotifier<bool>? panelVisibility})
       : _scrollController = scrollController ?? ScrollController(),
-        _panelVisibility = panelVisibility ?? ValueNotifier<bool>(false),
-        super(SliderValue());
+        _panelVisibility = ValueNotifier<bool>(false),
+        super(SlidingValue());
 
   final ScrollController _scrollController;
   final ValueNotifier<bool> _panelVisibility;
@@ -19,39 +19,34 @@ class PanelController extends ValueNotifier<SliderValue> {
   bool get isVisible => _panelVisibility.value;
 
   void openPanel() {
+    if (value.slidingState == SlidingState.min) return;
     value = value.copyWith(
-      position: Offset.zero,
+      slidingState: SlidingState.initial,
       factor: 0.0,
-      state: SliderState.initial,
-      offset: 0.0,
     );
     _panelVisibility.value = true;
   }
 
   void closePanel() {
+    if (value.slidingState == SlidingState.close) return;
     value = value.copyWith(
-      position: Offset.zero,
+      slidingState: SlidingState.close,
       factor: 0.0,
-      state: SliderState.close,
-      offset: 0.0,
     );
     _panelVisibility.value = false;
   }
 
-  void attach(SliderValue sliderValue) {
-    value = sliderValue.copyWith(
-      state: sliderValue.state,
-      factor: sliderValue.factor,
+  void attach(SlidingValue slidingValue) {
+    value = slidingValue.copyWith(
+      slidingState: slidingValue.slidingState,
+      factor: slidingValue.factor,
     );
-  }
-
-  @override
-  set value(SliderValue newValue) {
-    super.value = newValue;
+    _panelVisibility.value = true;
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     if (_panelVisibility.hasListeners) _panelVisibility.dispose();
     if (_scrollController.hasListeners) _scrollController.dispose();
     super.dispose();
